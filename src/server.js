@@ -1,9 +1,21 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const mqtt = require("mqtt");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Configuración MQTT
+const MQTT_CONFIG = {
+    broker: "mqtts://l46d1e5e.ala.us-east-1.emqxsl.com:8883",
+    topic: "idgs09/2020171026",
+    username: "big-data-001",
+    password: "1Q2W3E4R5T6Y"
+};
+
+// Cliente MQTT
+let mqttClient = null;
 
 // Middleware
 app.use(cors());
@@ -30,48 +42,20 @@ let sensorData = {
 // Historial de datos (últimos 100 registros)
 let dataHistory = [];
 
-// Endpoint para recibir datos del ESP32
+// NOTA: Este endpoint ya no se usa porque los datos ahora vienen por MQTT
+// Mantenemos el endpoint por compatibilidad pero los datos reales vienen de MQTT
 app.post("/api/sensor-data", (req, res) => {
-    try {
-        console.log("Datos recibidos del ESP32:", req.body);
-        
-        // Actualizar datos actuales con los 3 LEDs
-        sensorData = {
-            temperature: req.body.temperatura || req.body.temperature,
-            humidity: req.body.humedad || req.body.humidity,
-            led_amarillo: req.body.led_amarillo || 0,
-            led_verde: req.body.led_verde || 0,
-            led_rojo: req.body.led_rojo || 0,
-            state: req.body.estado || req.body.state || "IDLE",
-            timestamp: req.body.timestamp || Math.floor(Date.now() / 1000),
-            version: req.body.version || "1.0",
-            uuid: req.body.uuid || "2020171026"
-        };
-        
-        // Agregar al historial
-        dataHistory.push({...sensorData});
-        
-        // Mantener solo los últimos 100 registros
-        if (dataHistory.length > 100) {
-            dataHistory.shift();
-        }
-        
-        res.json({ 
-            success: true, 
-            message: "Datos recibidos correctamente",
-            data: sensorData 
-        });
-        
-    } catch (error) {
-        console.error("Error procesando datos del sensor:", error);
-        res.status(500).json({ 
-            success: false, 
-            message: "Error procesando datos del sensor" 
-        });
-    }
+    console.log("⚠️  Endpoint POST /api/sensor-data llamado, pero los datos ahora vienen por MQTT");
+    console.log("Datos recibidos (ignorados):", req.body);
+    
+    res.json({
+        success: true,
+        message: "Endpoint disponible pero los datos se obtienen vía MQTT",
+        note: "Los datos del dashboard se actualizan automáticamente desde el broker MQTT"
+    });
 });
 
-// Endpoint para obtener los datos actuales (para el dashboard)
+// Endpoint para obtener los datos actuales del sensor
 app.get("/api/sensor-data", (req, res) => {
     res.json({
         success: true,
@@ -143,6 +127,83 @@ app.get("/api/status", (req, res) => {
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "../public/index.html"));
 });
+
+// Función para conectar al broker MQTT
+function connectMQTT() {
+    console.log(`🔌 Conectando al broker MQTT: ${MQTT_CONFIG.broker}`);
+    
+    const options = {
+        username: MQTT_CONFIG.username,
+        password: MQTT_CONFIG.password,
+        reconnectPeriod: 5000,
+        connectTimeout: 30000,
+        clean: true
+    };
+    
+    mqttClient = mqtt.connect(MQTT_CONFIG.broker, options);
+    
+    mqttClient.on('connect', () => {
+        console.log(`✅ Conectado al broker MQTT`);
+        console.log(`📡 Suscribiéndose al tópico: ${MQTT_CONFIG.topic}`);
+        
+        mqttClient.subscribe(MQTT_CONFIG.topic, (err) => {
+            if (err) {
+                console.error(`❌ Error al suscribirse al tópico ${MQTT_CONFIG.topic}:`, err);
+            } else {
+                console.log(`✅ Suscrito exitosamente al tópico: ${MQTT_CONFIG.topic}`);
+            }
+        });
+    });
+    
+    mqttClient.on('message', (topic, message) => {
+        try {
+            console.log(`📨 Mensaje recibido del tópico ${topic}:`);
+            const data = JSON.parse(message.toString());
+            console.log('Datos MQTT:', data);
+            
+            // Actualizar datos actuales con los 3 LEDs
+            sensorData = {
+                temperature: data.temperatura || data.temperature,
+                humidity: data.humedad || data.humidity,
+                led_amarillo: data.led_amarillo || 0,
+                led_verde: data.led_verde || 0,
+                led_rojo: data.led_rojo || 0,
+                state: data.estado || data.state || "IDLE",
+                timestamp: data.timestamp || Math.floor(Date.now() / 1000),
+                version: data.version || "1.0",
+                uuid: data.uuid || "2020171026"
+            };
+            
+            // Agregar al historial
+            dataHistory.push({
+                ...sensorData,
+                timestamp: sensorData.timestamp
+            });
+            
+            // Mantener solo los últimos 100 registros
+            if (dataHistory.length > 100) {
+                dataHistory.shift();
+            }
+            
+            console.log(`📊 Datos actualizados desde MQTT. Historial: ${dataHistory.length} registros`);
+            
+        } catch (error) {
+            console.error('❌ Error procesando mensaje MQTT:', error);
+        }
+    });
+    
+    mqttClient.on('error', (error) => {
+        console.error('❌ Error de conexión MQTT:', error);
+    });
+    
+    mqttClient.on('close', () => {
+        console.log('🔌 Conexión MQTT cerrada');
+    });
+    
+    mqttClient.on('reconnect', () => {
+        console.log('🔄 Reintentando conexión MQTT...');
+    });
+}
 
 // Crear servidor HTTPS
 app.listen(PORT, () => {
