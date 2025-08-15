@@ -137,7 +137,8 @@ function connectMQTT() {
         password: MQTT_CONFIG.password,
         reconnectPeriod: 5000,
         connectTimeout: 30000,
-        clean: true
+        clean: true,
+        rejectUnauthorized: false
     };
     
     mqttClient = mqtt.connect(MQTT_CONFIG.broker, options);
