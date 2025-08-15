@@ -1,7 +1,5 @@
 const express = require("express");
 const cors = require("cors");
-const https = require("https");
-const fs = require("fs");
 const path = require("path");
 
 const app = express();
@@ -12,11 +10,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../public")));
 
-// Configurar certificados SSL/TLS
-const sslOptions = {
-    key: fs.readFileSync(path.join(__dirname, "../certs/key.pem")),
-    cert: fs.readFileSync(path.join(__dirname, "../certs/cert.pem"))
-};
 
 // Rutas OTA
 const otaRoutes = require("./routes/ota");
