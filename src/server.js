@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 
 const app = express();
-const PORT = process.env.PORT || 3443; // Puerto HTTPS por defecto
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
@@ -153,17 +153,10 @@ app.get("/", (req, res) => {
 });
 
 // Crear servidor HTTPS
-const server = https.createServer(sslOptions, app);
 
-server.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 Servidor HTTPS ejecutándose en https://0.0.0.0:${PORT}`);
-    console.log(`📊 Dashboard disponible en: https://192.168.100.7:${PORT}`);
-    console.log(`🔒 SSL/TLS habilitado con certificados autofirmados`);
-    console.log(`🔌 Endpoint para ESP32: https://192.168.100.7:${PORT}/api/sensor-data`);
-    console.log(`📈 API de historial: https://192.168.100.7:${PORT}/api/sensor-history`);
-    console.log(`📊 API de estadísticas: https://192.168.100.7:${PORT}/api/sensor-stats`);
-    console.log(`⚡ Estado del servidor: https://192.168.100.7:${PORT}/api/status`);
-    console.log(`🔧 OTA endpoints: https://192.168.100.7:${PORT}/api/ota/*`);
+
+app.listen(PORT, () => {
+    console.log(`Servidor en Render escuchando en puerto ${PORT}`);
 });
 
 // Manejo de errores
