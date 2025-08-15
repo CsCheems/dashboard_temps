@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 // Configuración MQTT
 const MQTT_CONFIG = {
     broker: "mqtts://l46d1e5e.ala.us-east-1.emqxsl.com:8883",
-    topic: "idgs09/2020171026",
+    topic: "/class/idgs09/2020171026",
     username: "big-data-001",
     password: "1Q2W3E4R5T6Y"
 };
