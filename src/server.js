@@ -207,6 +207,7 @@ function connectMQTT() {
 
 // Crear servidor HTTPS
 app.listen(PORT, () => {
+    connectMQTT();
     console.log(`Servidor en Render escuchando en puerto ${PORT}`);
 });
 
