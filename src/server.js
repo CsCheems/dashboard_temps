@@ -131,22 +131,23 @@ app.get("/", (req, res) => {
 // Función para conectar al broker MQTT
 function connectMQTT() {
     console.log(`🔌 Conectando al broker MQTT: ${MQTT_CONFIG.broker}`);
-    
+
     const options = {
         username: MQTT_CONFIG.username,
         password: MQTT_CONFIG.password,
         reconnectPeriod: 5000,
         connectTimeout: 30000,
         clean: true,
-        rejectUnauthorized: false
+        rejectUnauthorized: false // ⚠️ permite SSL autogenerado
     };
-    
+
     mqttClient = mqtt.connect(MQTT_CONFIG.broker, options);
-    
+
+    // Evento: Conexión exitosa
     mqttClient.on('connect', () => {
         console.log(`✅ Conectado al broker MQTT`);
         console.log(`📡 Suscribiéndose al tópico: ${MQTT_CONFIG.topic}`);
-        
+
         mqttClient.subscribe(MQTT_CONFIG.topic, (err) => {
             if (err) {
                 console.error(`❌ Error al suscribirse al tópico ${MQTT_CONFIG.topic}:`, err);
@@ -155,17 +156,17 @@ function connectMQTT() {
             }
         });
     });
-    
+
+    // Evento: Mensaje recibido
     mqttClient.on('message', (topic, message) => {
         try {
-            console.log(`📨 Mensaje recibido del tópico ${topic}:`);
+            console.log(`📨 Mensaje recibido del tópico ${topic}: ${message.toString()}`);
             const data = JSON.parse(message.toString());
-            console.log('Datos MQTT:', data);
-            
-            // Actualizar datos actuales con los 3 LEDs
+
+            // Actualizar datos actuales con los LEDs
             sensorData = {
-                temperature: data.temperatura || data.temperature,
-                humidity: data.humedad || data.humidity,
+                temperature: data.temperatura || data.temperature || null,
+                humidity: data.humedad || data.humidity || null,
                 led_amarillo: data.led_amarillo || 0,
                 led_verde: data.led_verde || 0,
                 led_rojo: data.led_rojo || 0,
@@ -174,33 +175,30 @@ function connectMQTT() {
                 version: data.version || "1.0",
                 uuid: data.uuid || "2020171026"
             };
-            
+
             // Agregar al historial
-            dataHistory.push({
-                ...sensorData,
-                timestamp: sensorData.timestamp
-            });
-            
+            dataHistory.push({ ...sensorData });
+
             // Mantener solo los últimos 100 registros
-            if (dataHistory.length > 100) {
-                dataHistory.shift();
-            }
-            
+            if (dataHistory.length > 100) dataHistory.shift();
+
             console.log(`📊 Datos actualizados desde MQTT. Historial: ${dataHistory.length} registros`);
-            
         } catch (error) {
             console.error('❌ Error procesando mensaje MQTT:', error);
         }
     });
-    
+
+    // Evento: Error de conexión
     mqttClient.on('error', (error) => {
         console.error('❌ Error de conexión MQTT:', error);
     });
-    
+
+    // Evento: Conexión cerrada
     mqttClient.on('close', () => {
-        console.log('🔌 Conexión MQTT cerrada');
+        console.warn('⚠️ Conexión MQTT cerrada');
     });
-    
+
+    // Evento: Reintento de conexión
     mqttClient.on('reconnect', () => {
         console.log('🔄 Reintentando conexión MQTT...');
     });
