@@ -1,0 +1,19 @@
+{
+  "name": "climate-dashboard-node",
+  "version": "1.0.0",
+  "description": "Dashboard web para control climático ESP32 con servidor Node.js mínimo",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js"
+  },
+  "keywords": ["esp32", "climate", "dashboard", "iot", "nodejs"],
+  "author": "Climate Control System",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.1"
+  }
+}
+
