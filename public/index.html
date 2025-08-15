@@ -260,6 +260,53 @@
                         </div>
                     </div>
 
+                    <!-- Carga de Firmware -->
+                    <div class="ota-card upload-card">
+                        <div class="ota-header">
+                            <div class="ota-icon">
+                                <i class="fas fa-upload"></i>
+                            </div>
+                            <h4>Cargar Nuevo Firmware</h4>
+                        </div>
+                        <div class="ota-content">
+                            <div class="upload-section">
+                                <div class="file-upload-area" id="fileUploadArea">
+                                    <div class="upload-icon">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                    </div>
+                                    <div class="upload-text">
+                                        <p><strong>Arrastra un archivo .bin aquí</strong></p>
+                                        <p>o haz clic para seleccionar</p>
+                                    </div>
+                                    <input type="file" id="firmwareFile" accept=".bin" style="display: none;">
+                                </div>
+                                <div class="file-info" id="fileInfo" style="display: none;">
+                                    <div class="file-details">
+                                        <i class="fas fa-file-code"></i>
+                                        <span class="file-name" id="fileName"></span>
+                                        <span class="file-size" id="fileSize"></span>
+                                    </div>
+                                    <button class="remove-file-btn" id="removeFileBtn">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="upload-controls">
+                                    <input type="text" id="firmwareVersion" placeholder="Versión (ej: 1.1.0)" class="version-input">
+                                    <button class="upload-btn" id="uploadBtn" disabled>
+                                        <i class="fas fa-upload"></i>
+                                        Subir Firmware
+                                    </button>
+                                </div>
+                                <div class="upload-progress" id="uploadProgress" style="display: none;">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" id="uploadProgressFill"></div>
+                                    </div>
+                                    <div class="progress-text" id="uploadProgressText">Subiendo firmware...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Controles OTA -->
                     <div class="ota-card controls-card">
                         <div class="ota-header">

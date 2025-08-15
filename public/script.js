@@ -725,3 +725,235 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('📊 Dashboard instance available as window.dashboard');
 });
 
+
+// Funcionalidad de carga de firmware OTA
+class FirmwareUploader {
+    constructor() {
+        this.selectedFile = null;
+        this.initializeElements();
+        this.bindEvents();
+    }
+
+    initializeElements() {
+        this.fileUploadArea = document.getElementById('fileUploadArea');
+        this.firmwareFile = document.getElementById('firmwareFile');
+        this.fileInfo = document.getElementById('fileInfo');
+        this.fileName = document.getElementById('fileName');
+        this.fileSize = document.getElementById('fileSize');
+        this.removeFileBtn = document.getElementById('removeFileBtn');
+        this.firmwareVersion = document.getElementById('firmwareVersion');
+        this.uploadBtn = document.getElementById('uploadBtn');
+        this.uploadProgress = document.getElementById('uploadProgress');
+        this.uploadProgressFill = document.getElementById('uploadProgressFill');
+        this.uploadProgressText = document.getElementById('uploadProgressText');
+    }
+
+    bindEvents() {
+        // Click en el área de carga
+        this.fileUploadArea.addEventListener('click', () => {
+            this.firmwareFile.click();
+        });
+
+        // Selección de archivo
+        this.firmwareFile.addEventListener('change', (e) => {
+            this.handleFileSelect(e.target.files[0]);
+        });
+
+        // Drag and drop
+        this.fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            this.fileUploadArea.classList.add('dragover');
+        });
+
+        this.fileUploadArea.addEventListener('dragleave', () => {
+            this.fileUploadArea.classList.remove('dragover');
+        });
+
+        this.fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            this.fileUploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            this.handleFileSelect(file);
+        });
+
+        // Remover archivo
+        this.removeFileBtn.addEventListener('click', () => {
+            this.clearFile();
+        });
+
+        // Botón de subida
+        this.uploadBtn.addEventListener('click', () => {
+            this.uploadFirmware();
+        });
+
+        // Validación de versión
+        this.firmwareVersion.addEventListener('input', () => {
+            this.validateForm();
+        });
+    }
+
+    handleFileSelect(file) {
+        if (!file) return;
+
+        // Validar que sea un archivo .bin
+        if (!file.name.toLowerCase().endsWith('.bin')) {
+            this.showNotification('Solo se permiten archivos .bin', 'error');
+            return;
+        }
+
+        // Validar tamaño (máximo 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            this.showNotification('El archivo es demasiado grande (máximo 5MB)', 'error');
+            return;
+        }
+
+        this.selectedFile = file;
+        this.displayFileInfo(file);
+        this.validateForm();
+    }
+
+    displayFileInfo(file) {
+        this.fileName.textContent = file.name;
+        this.fileSize.textContent = this.formatFileSize(file.size);
+        
+        this.fileUploadArea.style.display = 'none';
+        this.fileInfo.style.display = 'flex';
+    }
+
+    clearFile() {
+        this.selectedFile = null;
+        this.firmwareFile.value = '';
+        
+        this.fileUploadArea.style.display = 'block';
+        this.fileInfo.style.display = 'none';
+        
+        this.validateForm();
+    }
+
+    validateForm() {
+        const hasFile = this.selectedFile !== null;
+        const hasVersion = this.firmwareVersion.value.trim() !== '';
+        
+        this.uploadBtn.disabled = !(hasFile && hasVersion);
+    }
+
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    async uploadFirmware() {
+        if (!this.selectedFile || !this.firmwareVersion.value.trim()) {
+            this.showNotification('Por favor selecciona un archivo y especifica la versión', 'error');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('firmware', this.selectedFile);
+        formData.append('version', this.firmwareVersion.value.trim());
+
+        this.showUploadProgress();
+
+        try {
+            const response = await fetch('/api/ota/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                this.hideUploadProgress();
+                this.showNotification('¡Firmware subido exitosamente!', 'success');
+                this.clearFile();
+                this.firmwareVersion.value = '';
+                
+                // Actualizar información de versión disponible
+                this.updateAvailableVersion(result.firmware);
+                
+                // Mostrar mensaje sobre detección automática
+                setTimeout(() => {
+                    this.showNotification('El ESP32 detectará automáticamente el nuevo firmware en 1 minuto', 'info');
+                }, 2000);
+                
+            } else {
+                throw new Error(result.message || 'Error subiendo firmware');
+            }
+
+        } catch (error) {
+            this.hideUploadProgress();
+            this.showNotification(`Error: ${error.message}`, 'error');
+            console.error('Error uploading firmware:', error);
+        }
+    }
+
+    showUploadProgress() {
+        this.uploadBtn.disabled = true;
+        this.uploadProgress.style.display = 'block';
+        this.uploadProgressText.textContent = 'Subiendo firmware...';
+        
+        // Simular progreso
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += Math.random() * 15;
+            if (progress > 90) progress = 90;
+            this.uploadProgressFill.style.width = progress + '%';
+        }, 200);
+
+        // Guardar el interval para poder limpiarlo
+        this.progressInterval = interval;
+    }
+
+    hideUploadProgress() {
+        if (this.progressInterval) {
+            clearInterval(this.progressInterval);
+        }
+        
+        this.uploadProgressFill.style.width = '100%';
+        this.uploadProgressText.textContent = '¡Completado!';
+        
+        setTimeout(() => {
+            this.uploadProgress.style.display = 'none';
+            this.uploadProgressFill.style.width = '0%';
+            this.uploadBtn.disabled = false;
+        }, 1500);
+    }
+
+    updateAvailableVersion(firmwareInfo) {
+        const availableVersionElement = document.getElementById('availableVersion');
+        const updateStatusElement = document.getElementById('updateStatus');
+        
+        if (availableVersionElement) {
+            availableVersionElement.textContent = firmwareInfo.version;
+        }
+        
+        if (updateStatusElement) {
+            updateStatusElement.textContent = 'Nueva actualización disponible';
+            updateStatusElement.style.color = '#4CAF50';
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        // Usar la función de notificación existente del dashboard
+        if (window.dashboard && window.dashboard.showNotification) {
+            window.dashboard.showNotification(message, type);
+        } else {
+            // Fallback simple
+            alert(message);
+        }
+    }
+}
+
+// Inicializar el uploader cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', () => {
+    const uploader = new FirmwareUploader();
+    
+    // Hacer el uploader globalmente disponible
+    window.firmwareUploader = uploader;
+    
+    console.log('📤 Firmware Uploader initialized');
+});
+
