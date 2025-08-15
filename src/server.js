@@ -10,7 +10,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../public")));
 
-
 // Rutas OTA
 const otaRoutes = require("./routes/ota");
 app.use("/api/ota", otaRoutes);
@@ -146,8 +145,6 @@ app.get("/", (req, res) => {
 });
 
 // Crear servidor HTTPS
-
-
 app.listen(PORT, () => {
     console.log(`Servidor en Render escuchando en puerto ${PORT}`);
 });

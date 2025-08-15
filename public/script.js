@@ -317,14 +317,19 @@ class ClimateDashboard {
     }
 
     updateLED(color, status) {
+        console.log(`Actualizando LED ${color}: ${status}`); // Debug log
+        
         const statusElement = document.getElementById(`led${color.charAt(0).toUpperCase() + color.slice(1)}Status`);
         const lightElement = document.getElementById(`led${color.charAt(0).toUpperCase() + color.slice(1)}Light`);
+        
+        console.log(`Elementos encontrados - Status: ${!!statusElement}, Light: ${!!lightElement}`); // Debug log
         
         if (statusElement) {
             const statusText = statusElement.querySelector('.status-text');
             
             if (statusText) {
                 statusText.textContent = status ? 'Encendido' : 'Apagado';
+                console.log(`Texto actualizado para ${color}: ${statusText.textContent}`); // Debug log
             }
         }
         
@@ -335,6 +340,9 @@ class ClimateDashboard {
             // Agregar la clase correspondiente si está encendido
             if (status) {
                 lightElement.classList.add(`${color}-on`);
+                console.log(`Clase agregada: ${color}-on`); // Debug log
+            } else {
+                console.log(`LED ${color} apagado`); // Debug log
             }
         }
     }
